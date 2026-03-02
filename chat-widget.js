@@ -179,6 +179,18 @@
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
         }
 
+        .n8n-chat-widget .chat-message.bot a {
+            color: var(--chat--color-primary);
+            text-decoration: underline;
+        }
+
+        .n8n-chat-widget .chat-message.bot img {
+            max-width: 100%;
+            border-radius: 6px;
+            display: block;
+            margin-top: 4px;
+        }
+
         .n8n-chat-widget .chat-input {
             padding: 16px;
             background: var(--chat--color-background);
@@ -387,6 +399,33 @@
     const textarea = chatContainer.querySelector('textarea');
     const sendButton = chatContainer.querySelector('button[type="submit"]');
 
+    function renderMarkdown(text) {
+        // Escape HTML entities to prevent XSS
+        let html = text
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+
+        // Images: ![alt](url)  — must come before links
+        html = html.replace(/!\[([^\]]*)\]\((https?:\/\/[^)]+)\)/g,
+            '<img src="$2" alt="$1">');
+
+        // Links: [text](url)
+        html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g,
+            '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+
+        // Bold: **text**
+        html = html.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>');
+
+        // Italic: *text*
+        html = html.replace(/\*([^*\n]+)\*/g, '<em>$1</em>');
+
+        // Line breaks
+        html = html.replace(/\n/g, '<br>');
+
+        return html;
+    }
+
     function generateUUID() {
         return crypto.randomUUID();
     }
@@ -420,7 +459,7 @@
             if (output) {
                 const botMessageDiv = document.createElement('div');
                 botMessageDiv.className = 'chat-message bot';
-                botMessageDiv.textContent = output;
+                botMessageDiv.innerHTML = renderMarkdown(output);
                 messagesContainer.appendChild(botMessageDiv);
                 messagesContainer.scrollTop = messagesContainer.scrollHeight;
             }
@@ -461,7 +500,7 @@
             if (output) {
                 const botMessageDiv = document.createElement('div');
                 botMessageDiv.className = 'chat-message bot';
-                botMessageDiv.textContent = output;
+                botMessageDiv.innerHTML = renderMarkdown(output);
                 messagesContainer.appendChild(botMessageDiv);
                 messagesContainer.scrollTop = messagesContainer.scrollHeight;
             }
