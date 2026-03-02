@@ -338,6 +338,7 @@
             name: '',
             welcomeText: '',
             responseTimeText: '',
+            chatOpenMessage: '',
             poweredBy: {
                 text: 'Powered by n8n',
                 link: 'https://n8n.io/'
@@ -496,6 +497,14 @@
         chatContainer.querySelector('.brand-header').style.display = 'none';
         chatContainer.querySelector('.new-conversation').style.display = 'none';
         chatInterface.classList.add('active');
+
+        if (config.branding.chatOpenMessage) {
+            const openMsgDiv = document.createElement('div');
+            openMsgDiv.className = 'chat-message bot';
+            openMsgDiv.innerHTML = renderMarkdown(config.branding.chatOpenMessage);
+            messagesContainer.appendChild(openMsgDiv);
+        }
+
         showTyping();
 
         try {
