@@ -179,6 +179,35 @@
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
         }
 
+        .n8n-chat-widget .bot-message-row {
+            display: flex;
+            align-items: flex-end;
+            gap: 8px;
+            align-self: flex-start;
+            max-width: 88%;
+        }
+
+        .n8n-chat-widget .bot-message-row .chat-message.bot {
+            align-self: auto;
+            max-width: 100%;
+        }
+
+        .n8n-chat-widget .bot-avatar-sm {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            object-fit: cover;
+            flex-shrink: 0;
+            margin-bottom: 2px;
+        }
+
+        .n8n-chat-widget .chat-toggle img {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
         .n8n-chat-widget .chat-message.bot a {
             color: var(--chat--color-primary);
             text-decoration: underline;
@@ -320,6 +349,77 @@
         .n8n-chat-widget .chat-footer a:hover {
             opacity: 1;
         }
+
+        .n8n-chat-widget .chat-popup {
+            position: fixed;
+            bottom: 92px;
+            right: 20px;
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            padding: 12px 36px 12px 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            max-width: 260px;
+            cursor: pointer;
+            z-index: 998;
+            font-family: inherit;
+        }
+
+        .n8n-chat-widget .chat-popup.position-left {
+            right: auto;
+            left: 20px;
+        }
+
+        .n8n-chat-widget .chat-popup::after {
+            content: '';
+            position: absolute;
+            bottom: -7px;
+            right: 22px;
+            border-left: 7px solid transparent;
+            border-right: 7px solid transparent;
+            border-top: 7px solid #ffffff;
+            filter: drop-shadow(0 2px 1px rgba(0,0,0,0.06));
+        }
+
+        .n8n-chat-widget .chat-popup.position-left::after {
+            right: auto;
+            left: 22px;
+        }
+
+        .n8n-chat-widget .chat-popup-avatar {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            object-fit: cover;
+            flex-shrink: 0;
+        }
+
+        .n8n-chat-widget .chat-popup-text {
+            font-size: 14px;
+            color: #333333;
+            line-height: 1.4;
+        }
+
+        .n8n-chat-widget .chat-popup-close {
+            position: absolute;
+            top: -7px;
+            right: -7px;
+            width: 22px;
+            height: 22px;
+            background: #888888;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+            padding: 0;
+        }
     `;
 
     // Inject styles
@@ -339,6 +439,8 @@
             welcomeText: '',
             responseTimeText: '',
             chatOpenMessage: '',
+            avatar: '',
+            popupMessage: '',
             poweredBy: {
                 text: 'Powered by n8n',
                 link: 'https://n8n.io/'
@@ -420,10 +522,14 @@
 
     const toggleButton = document.createElement('button');
     toggleButton.className = `chat-toggle${config.style.position === 'left' ? ' position-left' : ''}`;
-    toggleButton.innerHTML = `
+    if (config.branding.avatar) {
+        toggleButton.innerHTML = `<img src="${config.branding.avatar}" alt="${config.branding.name || ''}">`;
+    } else {
+        toggleButton.innerHTML = `
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
             <path d="M12 2C6.477 2 2 6.477 2 12c0 1.821.487 3.53 1.338 5L2.5 21.5l4.5-.838A9.955 9.955 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2zm0 18c-1.476 0-2.886-.313-4.156-.878l-3.156.586.586-3.156A7.962 7.962 0 014 12c0-4.411 3.589-8 8-8s8 3.589 8 8-3.589 8-8 8z"/>
         </svg>`;
+    }
 
     widgetContainer.appendChild(chatContainer);
     widgetContainer.appendChild(toggleButton);
@@ -437,19 +543,45 @@
 
     let typingEl = null;
 
+    function makeAvatarEl() {
+        if (!config.branding.avatar) return null;
+        const img = document.createElement('img');
+        img.className = 'bot-avatar-sm';
+        img.src = config.branding.avatar;
+        img.alt = '';
+        return img;
+    }
+
     function showTyping() {
+        const row = document.createElement('div');
+        row.className = 'bot-message-row';
+        const av = makeAvatarEl();
+        if (av) row.appendChild(av);
         typingEl = document.createElement('div');
         typingEl.className = 'typing-indicator';
         typingEl.innerHTML = '<span></span><span></span><span></span>';
-        messagesContainer.appendChild(typingEl);
+        row.appendChild(typingEl);
+        messagesContainer.appendChild(row);
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
 
     function hideTyping() {
         if (typingEl) {
-            typingEl.remove();
+            typingEl.closest('.bot-message-row')?.remove() || typingEl.remove();
             typingEl = null;
         }
+    }
+
+    function createBotMessage(text) {
+        const row = document.createElement('div');
+        row.className = 'bot-message-row';
+        const av = makeAvatarEl();
+        if (av) row.appendChild(av);
+        const msg = document.createElement('div');
+        msg.className = 'chat-message bot';
+        msg.innerHTML = renderMarkdown(text);
+        row.appendChild(msg);
+        return row;
     }
 
     function renderMarkdown(text) {
@@ -499,10 +631,7 @@
         chatInterface.classList.add('active');
 
         if (config.branding.chatOpenMessage) {
-            const openMsgDiv = document.createElement('div');
-            openMsgDiv.className = 'chat-message bot';
-            openMsgDiv.innerHTML = renderMarkdown(config.branding.chatOpenMessage);
-            messagesContainer.appendChild(openMsgDiv);
+            messagesContainer.appendChild(createBotMessage(config.branding.chatOpenMessage));
         }
 
         showTyping();
@@ -521,10 +650,7 @@
 
             const output = Array.isArray(responseData) ? responseData[0]?.output : responseData.output;
             if (output) {
-                const botMessageDiv = document.createElement('div');
-                botMessageDiv.className = 'chat-message bot';
-                botMessageDiv.innerHTML = renderMarkdown(output);
-                messagesContainer.appendChild(botMessageDiv);
+                messagesContainer.appendChild(createBotMessage(output));
                 messagesContainer.scrollTop = messagesContainer.scrollHeight;
             }
         } catch (error) {
@@ -566,10 +692,7 @@
 
             const output = Array.isArray(data) ? data[0]?.output : data.output;
             if (output) {
-                const botMessageDiv = document.createElement('div');
-                botMessageDiv.className = 'chat-message bot';
-                botMessageDiv.innerHTML = renderMarkdown(output);
-                messagesContainer.appendChild(botMessageDiv);
+                messagesContainer.appendChild(createBotMessage(output));
                 messagesContainer.scrollTop = messagesContainer.scrollHeight;
             }
         } catch (error) {
@@ -599,8 +722,32 @@
         }
     });
 
+    // Build popup speech bubble
+    let popupEl = null;
+    if (config.branding.popupMessage) {
+        popupEl = document.createElement('div');
+        popupEl.className = `chat-popup${config.style.position === 'left' ? ' position-left' : ''}`;
+        const avatarHtml = config.branding.avatar
+            ? `<img class="chat-popup-avatar" src="${config.branding.avatar}" alt="">`
+            : '';
+        popupEl.innerHTML = `${avatarHtml}<span class="chat-popup-text">${config.branding.popupMessage}</span><button class="chat-popup-close" aria-label="Dismiss">\u00d7</button>`;
+        widgetContainer.appendChild(popupEl);
+
+        popupEl.addEventListener('click', (e) => {
+            if (!e.target.classList.contains('chat-popup-close')) {
+                chatContainer.classList.add('open');
+                popupEl.style.display = 'none';
+            }
+        });
+        popupEl.querySelector('.chat-popup-close').addEventListener('click', (e) => {
+            e.stopPropagation();
+            popupEl.style.display = 'none';
+        });
+    }
+
     toggleButton.addEventListener('click', () => {
         chatContainer.classList.toggle('open');
+        if (popupEl) popupEl.style.display = 'none';
     });
 
     // Add close button handlers
