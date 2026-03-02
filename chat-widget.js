@@ -191,6 +191,41 @@
             margin-top: 4px;
         }
 
+        .n8n-chat-widget .typing-indicator {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 12px 16px;
+            margin: 8px 0;
+            background: var(--chat--color-background);
+            border: 1px solid rgba(133, 79, 255, 0.2);
+            border-radius: 12px;
+            align-self: flex-start;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+
+        .n8n-chat-widget .typing-indicator span {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--chat--color-primary);
+            opacity: 0.6;
+            animation: n8n-typing-bounce 1.2s infinite ease-in-out;
+        }
+
+        .n8n-chat-widget .typing-indicator span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .n8n-chat-widget .typing-indicator span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes n8n-typing-bounce {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-6px); }
+        }
+
         .n8n-chat-widget .chat-input {
             padding: 16px;
             background: var(--chat--color-background);
@@ -399,6 +434,23 @@
     const textarea = chatContainer.querySelector('textarea');
     const sendButton = chatContainer.querySelector('button[type="submit"]');
 
+    let typingEl = null;
+
+    function showTyping() {
+        typingEl = document.createElement('div');
+        typingEl.className = 'typing-indicator';
+        typingEl.innerHTML = '<span></span><span></span><span></span>';
+        messagesContainer.appendChild(typingEl);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    function hideTyping() {
+        if (typingEl) {
+            typingEl.remove();
+            typingEl = null;
+        }
+    }
+
     function renderMarkdown(text) {
         // Escape HTML entities to prevent XSS
         let html = text
@@ -441,6 +493,11 @@
             }
         }];
 
+        chatContainer.querySelector('.brand-header').style.display = 'none';
+        chatContainer.querySelector('.new-conversation').style.display = 'none';
+        chatInterface.classList.add('active');
+        showTyping();
+
         try {
             const response = await fetch(config.webhook.url, {
                 method: 'POST',
@@ -451,9 +508,7 @@
             });
 
             const responseData = await response.json();
-            chatContainer.querySelector('.brand-header').style.display = 'none';
-            chatContainer.querySelector('.new-conversation').style.display = 'none';
-            chatInterface.classList.add('active');
+            hideTyping();
 
             const output = Array.isArray(responseData) ? responseData[0]?.output : responseData.output;
             if (output) {
@@ -464,6 +519,7 @@
                 messagesContainer.scrollTop = messagesContainer.scrollHeight;
             }
         } catch (error) {
+            hideTyping();
             console.error('Error:', error);
         }
     }
@@ -485,6 +541,8 @@
         messagesContainer.appendChild(userMessageDiv);
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
+        showTyping();
+
         try {
             const response = await fetch(config.webhook.url, {
                 method: 'POST',
@@ -495,6 +553,7 @@
             });
 
             const data = await response.json();
+            hideTyping();
 
             const output = Array.isArray(data) ? data[0]?.output : data.output;
             if (output) {
@@ -505,6 +564,7 @@
                 messagesContainer.scrollTop = messagesContainer.scrollHeight;
             }
         } catch (error) {
+            hideTyping();
             console.error('Error:', error);
         }
     }
