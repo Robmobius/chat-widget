@@ -441,6 +441,7 @@
             chatOpenMessage: '',
             avatar: '',
             popupMessage: '',
+            showSplash: true,
             poweredBy: {
                 text: 'Powered by n8n',
                 link: 'https://n8n.io/'
@@ -468,6 +469,7 @@
     window.N8NChatWidgetInitialized = true;
 
     let currentSessionId = '';
+    let conversationStarted = false;
 
     // Create widget container
     const widgetContainer = document.createElement('div');
@@ -616,6 +618,8 @@
     }
 
     async function startNewConversation() {
+        if (conversationStarted) return;
+        conversationStarted = true;
         currentSessionId = generateUUID();
         const data = [{
             action: "loadPreviousSession",
@@ -746,8 +750,12 @@
     }
 
     toggleButton.addEventListener('click', () => {
+        const wasOpen = chatContainer.classList.contains('open');
         chatContainer.classList.toggle('open');
         if (popupEl) popupEl.style.display = 'none';
+        if (!wasOpen && !config.branding.showSplash && !conversationStarted) {
+            startNewConversation();
+        }
     });
 
     // Add close button handlers
