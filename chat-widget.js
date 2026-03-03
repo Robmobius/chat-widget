@@ -545,6 +545,13 @@
 
     let typingEl = null;
 
+    // If splash is disabled, pre-hide it so the container opens directly to chat
+    if (!config.branding.showSplash) {
+        chatContainer.querySelector('.brand-header').style.display = 'none';
+        chatContainer.querySelector('.new-conversation').style.display = 'none';
+        chatInterface.classList.add('active');
+    }
+
     function makeAvatarEl() {
         if (!config.branding.avatar) return null;
         const img = document.createElement('img');
@@ -741,6 +748,9 @@
             if (!e.target.classList.contains('chat-popup-close')) {
                 chatContainer.classList.add('open');
                 popupEl.style.display = 'none';
+                if (!config.branding.showSplash && !conversationStarted) {
+                    startNewConversation();
+                }
             }
         });
         popupEl.querySelector('.chat-popup-close').addEventListener('click', (e) => {
